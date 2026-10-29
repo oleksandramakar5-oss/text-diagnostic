@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Діагностик НМТ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between p-2 sm:p-4 overflow-x-hidden">
+
+    <!-- Main Content Container -->
+    <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 items-stretch">
+
+        <!-- Left Column: Settings & Input -->
+        <div class="lg:col-span-7 space-y-2.5 flex flex-col justify-between">
+
+            <!-- Step 1: Subject Selection -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wide text-slate-600">1. Оберіть предмет</span>
+                    <span id="selected-subject-badge" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">
+                        📐 Математика
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5" id="subject-buttons">
+                    <!-- Buttons injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Step 2: Paste Test Data & Link -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="input-test-data" class="text-xs font-bold uppercase tracking-wide text-slate-600">
+                            2. Дані тестування учня
+                        </label>
+                        <button id="btn-reset" class="text-[11px] text-rose-600 hover:text-rose-700 font-medium transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-right text-[10px]"></i>
+                            <span>Очистити все</span>
+                        </button>
+                    </div>
+                    <textarea id="input-test-data" rows="3" 
+                        class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs font-mono text-slate-700 transition resize-none"
+                        placeholder="Вставте текст з балами, наприклад:&#10;Ваш тестовий бал: 13 з 46...&#10;Ваш рейтинговий бал: 131 з 200 можливих."></textarea>
+                </div>
+
+                <div>
+                    <label for="input-link" class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1">
+                        3. Посилання на результат
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-link text-xs"></i>
+                        </div>
+                        <input type="url" id="input-link"
+                            class="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs text-slate-700 transition"
+                            placeholder="https://probne.znohub.online/result/view/...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Detected Score & Level Selection -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                    <div class="flex items-baseline space-x-2">
+                        <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Бал:</span>
+                        <span id="detected-score" class="text-lg font-extrabold text-blue-600">—</span>
+                        <span class="text-[10px] text-slate-400">/ 200</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <label class="text-[11px] text-slate-500 font-medium">Ручна корекція:</label>
+                        <input type="number" id="manual-score-input" min="0" max="200" placeholder="0"
+                            class="w-16 p-1 text-center bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-800">
+                    </div>
+                </div>
+
+                <div>
+                    <span class="block text-[11px] font-bold uppercase tracking-wide text-slate-600 mb-1">
+                        4. Рівень (визначається за балом):
+                    </span>
+                    <div class="grid grid-cols-3 gap-1.5" id="level-buttons">
+                        <button type="button" data-level="low" class="level-btn border p-2 rounded-lg text-center transition flex flex-col items-center justify-center">
+                            <span class="text-xs font-bold">Низький</span>
+                            <span class="text-[9px] text-slate-400">0 – 144</span>
+                        </button>
+                        <button type="button" data-level="mid" class="level-btn border p-2 rounded-lg text-center transition flex flex-col items-center justify-center">
+                            <span class="text-xs font-bold">Середній</span>
+                            <span class="text-[9px] text-slate-400">145 – 169</span>
+                        </button>
+                        <button type="button" data-level="high" class="level-btn border p-2 rounded-lg text-center transition flex flex-col items-center justify-center">
+                            <span class="text-xs font-bold">Високий</span>
+                            <span class="text-[9px] text-slate-400">170 – 200</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Separate Tariff CTA Buttons -->
+            <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 shadow-sm">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-bold uppercase tracking-wide text-indigo-900 flex items-center gap-1">
+                        <i class="fa-solid fa-gem text-indigo-600"></i>
+                        <span>Скопіювати пропозицію Тарифу «Преміум»</span>
+                    </span>
+                    <span class="text-[10px] text-indigo-500">Копіює в 1 клік</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button type="button" id="cta-low" class="bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 p-2 rounded-lg text-xs font-semibold transition shadow-sm active:scale-95 flex items-center justify-center gap-1">
+                        <i class="fa-regular fa-copy text-[10px]"></i>
+                        <span>Низький</span>
+                    </button>
+                    <button type="button" id="cta-mid" class="bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 p-2 rounded-lg text-xs font-semibold transition shadow-sm active:scale-95 flex items-center justify-center gap-1">
+                        <i class="fa-regular fa-copy text-[10px]"></i>
+                        <span>Середній</span>
+                    </button>
+                    <button type="button" id="cta-high" class="bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 p-2 rounded-lg text-xs font-semibold transition shadow-sm active:scale-95 flex items-center justify-center gap-1">
+                        <i class="fa-regular fa-copy text-[10px]"></i>
+                        <span>Високий</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Live Output Preview -->
+        <div class="lg:col-span-5 flex flex-col">
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col h-full justify-between">
+                <div class="flex items-center justify-between mb-1.5">
+                    <h2 class="text-xs font-bold uppercase tracking-wide text-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane text-blue-600"></i>
+                        <span>Фінальний текст для учня</span>
+                    </h2>
+                    <span class="text-[10px] text-slate-400">Редагується</span>
+                </div>
+
+                <div class="flex-1 flex flex-col min-h-[280px]">
+                    <textarea id="final-output" 
+                        class="w-full flex-1 p-3 bg-slate-900 text-slate-100 font-sans text-xs rounded-xl focus:ring-2 focus:ring-blue-500 border-none leading-relaxed custom-scrollbar resize-none"
+                        placeholder="Тут з'явиться готове повідомлення після введення даних..."
+                        spellcheck="false"></textarea>
+                    
+                    <div class="mt-2">
+                        <button id="btn-copy" 
+                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl shadow-md shadow-emerald-600/20 active:scale-[0.99] transition flex items-center justify-center space-x-2 text-xs uppercase tracking-wider">
+                            <i class="fa-regular fa-copy text-sm"></i>
+                            <span>Скопіювати в 1 клік</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2.5 transform translate-y-16 opacity-0 transition-all duration-300 pointer-events-none z-50">
+        <div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <div class="text-xs font-medium" id="toast-message">Текст успішно скопійовано!</div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const SUBJECTS = [
+            { id: 'math', name: 'Математика', emoji: '📐' },
+            { id: 'history', name: 'Історія', emoji: '📜' },
+            { id: 'ukr_lang', name: 'Укр мова', emoji: '🇺🇦' },
+            { id: 'ukr_lit', name: 'Укр літ', emoji: '📚' },
+            { id: 'eng', name: 'Англ мова', emoji: '🇬🇧' },
+            { id: 'bio', name: 'Біологія', emoji: '🧬' },
+            { id: 'geo', name: 'Географія', emoji: '🌍' }
+        ];
+
+        const CTA_TEXTS = {
+            low: `Наразі можна побачити низькі результати імітацій, але наразі ще достатньо часу, аби підвищити рівень📌
+
+Це абсолютно нормально, що деякі теми даються складно, адже для цього і потрібне навчання. Щоб підготовка була максимально комфортною та ефективною, ми б рекомендували наш тариф «Преміум»
+
+Він включає додаткові практикуми з куратором-це можливість додатково розібрати проблемні завдання, поставити будь-які запитання та пропрацювати помилки детальніше💙
+
+Крім того, ви проходитимете пробні НМТ у реальному інтерфейсі. Це допоможе звикнути до формату тесту, позбутися хвилювання та навчитися правильно розподіляти час, що також дуже важливо на іспиті✅
+
+Підкажіть, будь ласка, чи бажаєте ви детальніше дізнатися про навчання в нашій школі?)`,
+
+            mid: `У вас уже є хороша база знань, але залишаються теми, які потребують додаткового опрацювання📌
+
+Вам необхідно систематизувати знання, що ж наразі, закрити прогалини та поступово переходити до складніших завдань💙
+
+З огляду на результати, ми б рекомендували наш тариф «Преміум», адже він передбачає додаткові практикуми з куратором-це можливість ще раз опрацювати складні теми, розібрати помилки та закріпити матеріал на практиці з викладачем 
+
+Також у вас будуть пробні НМТ у реальному інтерфейсі. Це допоможе поступово звикнути до формату іспиту, навчитися правильно розподіляти час і почуватися впевненіше під час самого тестування ✅
+
+Підкажіть, будь ласка, чи бажаєте дізнатися більше про навчання?)`,
+
+            high: `За результатами імітацій, у вас уже є доволі високий рівень знань 🔥
+
+У вашому випадку одна з головних задач-це не втратити результат, що ви маєте зараз та сфокусуватися на ретельному опрацьовуванні дрібних моментів, які не дозволяють вийти на максимальні результати📌
+
+З огляду на результати, ми б рекомендували наш тариф «преміум», аби у вас була додаткова можливість для онлайн-практик з куратором, що допоможе розібрати всі деталі тем, де ще виникають помилки
+
+А наша АІ-аналітика додатково аналізуватиме ваш результат та прогрес, аби показувати моменти, які ще залишились недопрацьованими, і ви підготувались на якомога кращий результат ✅
+
+Підкажіть, будь ласка, чи бажаєте дізнатися більше про навчання з нами?)`
+        };
+
+        const TEXTS = {
+            math: {
+                low: `Зараз головне завдання: якісно сформувати математичну базу.
+У математиці база - це практично все. Майже кожне складніше завдання спирається на знання простіших тем. Якщо є прогалини у відсотках, дробах, рівняннях, функціях чи геометрії, вони обовʼязково проявляться під час розв'язування складних задач
+
+Окрему увагу варто звернути на завдання з параметром. Це одна з найскладніших тем, що принесе 11 балів, однак після впевненого засвоєння базових тем її значно легше зрозуміти
+
+Спочатку необхідно якісно опрацювати всі базові теми та довести їх до автоматизму великою кількістю практики. Після цього переходити до складніших типів завдань, зокрема задач із параметром
+
+На нашому курсі додатково буде спецкурс «математика з нуля», аби була можливість плавно увійти у темп та спочатку напрацювати початкові теми💘`,
+                mid: `Певна математична база вже сформована: більшість базових завдань виконується впевнено, однак під час розв’язування складніших задач починають виникати труднощі
+
+Причина полягає в невеликих прогалинах у базових темах. У математиці всі теми взаємопов’язані: навіть незначні неточності в простіших поняттях можуть призводити до помилок у складних завданнях. Саме тому базу не варто залишати без уваги, її необхідно якісно пропрацювати, а вже після цього переходити до складніших типів задач
+
+Рекомендую спочатку системно повторити всі базові теми та закріпити їх великою кількістю практики. Після цього переходити до складніших завдань. Така послідовність дозволить усунути прогалини, впевненіше розв’язувати складні задачі та суттєво підвищити результат на НМТ`,
+                high: `База сформована, більшість тем засвоєна, а навички розв’язування завдань знаходяться на високому рівні
+
+Найважливіше зараз - не втратити цей рівень протягом року. Без регулярної практики навіть добре засвоєний матеріал поступово забувається, тому важливо систематично повторювати всі теми та підтримувати форму
+
+Також варто пам’ятати, що одна імітація не завжди показує всі слабкі місця. Деякі теми могли просто не трапитися в цьому варіанті або трапитися в легшій формі, але на реальному НМТ вони можуть проявитися. Саме тому не варто робити висновок, що теми без помилок уже не потребують повторення: якісно пропрацювати потрібно всю програму
+
+Окрема увага останнім завданням
+
+Саме вони є найскладнішими в тесті, але водночас мають найбільшу цінність: у сумі можуть принести близько 33 рейтингових балів. Тому їх регулярне відпрацювання є одним із найефективніших способів підвищити підсумковий результат`
+            },
+            history: {
+                low: `Насамперед рекомендую ретельно опрацювати всю програму НМТ за хронологією: від найдавніших часів до сучасності. Саме такий підхід допоможе зрозуміти взаємозв’язок між історичними подіями та не плутати різні періоди
+
+Не менш важливо регулярно повторювати вже пройдені теми, адже історія містить великий обсяг інформації, який без повторення швидко забувається. Також варто виконувати якомога більше тематичних і повних тестів, щоб звикнути до формату НМТ та навчитися застосовувати знання на практиці
+
+Також важливо не просто запам’ятовувати інформацію, а розуміти логічний ланцюжок розвитку історії, адже на НМТ часто перевіряється й вміння логічно мислити`,
+                mid: `Більшість базових запитань не викликає значних труднощів, однак якщо завдання потребує глибшого розуміння теми або встановлення зв’язків між подіями, починають виникати помилки
+
+Щоб вийти на високий результат, необхідно якісно пройти всю програму НМТ та регулярно повертатися до вже вивчених тем. Саме повторення дозволяє не втрачати важливі деталі та поступово сформувати системні знання.
+
+Окрему увагу варто приділити логіці історичних процесів. На НМТ багато завдань перевіряють не лише знання фактів, а й уміння встановлювати причинно-наслідкові зв’язки, визначати правильну послідовність подій, аналізувати історичні джерела та розуміти, як одна подія вплинула на іншу.
+
+Регулярна практика тестів допоможе закріпити ці навички та впевненіше виконувати завдання різного рівня складності.`,
+                high: `Основний акцент зараз варто зробити на великій кількості практики та системному повторенні всього курсу. Навіть за високого рівня підготовки важливо ще раз пройти всю програму від початку до кінця, щоб сформувати цілісне бачення історичного процесу та не втратити знання окремих тем.
+
+Також рекомендую регулярно виконувати повні варіанти НМТ та аналізувати навіть незначні помилки. Часто саме дрібні неточності або теми, які давно не повторювалися, можуть стати причиною втрати балів на реальному іспиті.
+
+Не забувайте, що НМТ перевіряє не лише знання фактів, а й уміння мислити логічно, працювати з історичними джерелами, хронологією, портретами та пам’ятками культури. Саме тому поєднання системного повторення та великої кількості практики є найкращою стратегією для досягнення максимального результату.`
+            },
+            ukr_lang: {
+                low: `Наразі найбільше проблем виникає у багатьох ключових темах програми.
+Насамперед рекомендую систематично опрацювати абсолютно всі розділи мовознавства: від фонетики до синтаксису. Для успішного складання НМТ вкрай важливо вивчити кожну тему та постійно практикуватися на тестах у форматі НМТ, щоб звикнути до завдань і навчитися застосовувати правила на практиці.
+
+Окрему увагу варто звернути на такі теми, як наголоси, фразеологізми та лексичні помилки, адже вони вже самі по собі приносять доволі багато балів на іспиті. За ці завдання можна сумарно отримати близько 6 тестових балів, що за 200-бальною шкалою дає додаткові 25–30 рейтингових балів. Ці теми ми радимо систематично повторювати та вивчати за допомогою інтерактивних карток Quizlet (які, до речі, у нас уже повністю готові та розроблені на курсі), адже це дозволяє легко й швидко закарбувати складні слова та вирази в пам'яті`,
+                mid: `Наразі у вас вже є непогана база, але для максимального результату залишаються нюанси, які потребують доопрацювання.
+
+Українська мова-це єдиний предмет на НМТ, який наразі можна було скласти на 200, адже вся програма вивчається до 9 класу включно. Зараз головне завдання-якісно повторити весь матеріал, вивчити якомога більше винятків із правил та навчитися чітко аналізувати й застосовувати ці правила на практиці
+
+Окрему увагу варто приділити регулярному виконанню тестів у форматі НМТ, адже на іспиті часто трапляються заплутані завдання зі складним формулюванням. Постійна практика допоможе швидко розуміти логіку таких питань і не втрачати дорогоцінні бали. До речі, для легкого запам'ятовування найскладніших винятків і правил ми на курсі використовуємо зручні інтерактивні картки Quizlet, які допомагають довести знання до автоматизму`,
+                high: `На високих балах вирішальну роль відіграють деталі. Практично з кожного мовного правила є свої винятки та нюанси, на яких найчастіше втрачають бали навіть найсильніші учні. Щоб стабільно отримувати 195-200 балів, потрібно відточувати складні випадки синтаксису, розрізняти тонкощі відмінювання числівників і бачити пастки у тестових формулюванняхТут допоможе систематична практика на нестандартних завданнях, глибокий аналіз своїх помилок і регулярний тренінг. Саме детальний розбір усіх «підводних каменів» та акцент на найскладніших мовних винятках дозволять довести навички до ідеалу й впевнено забрати свій максимум на іспиті`
+            },
+            ukr_lit: {
+                low: `Найважливіше зараз - поступово ознайомитися з усією програмою НМТ та зрозуміти зміст основних творів.
+
+Рекомендую прочитати всі твори з програми НМТ, хоча б у скороченому варіанті. Це допоможе зрозуміти сюжет, персонажів, основні проблеми та не плутатися в завданнях під час іспиту.
+
+Окрему увагу варто приділити письменникам: їхнім біографіям, особливостям творчості, літературним напрямам і творам. На НМТ регулярно трапляються завдання, які перевіряють саме ці знання, тому їх не варто залишати поза увагою.
+
+Також рекомендую регулярно повторювати вже вивчені твори та виконувати тематичні тести. Це допоможе поступово сформувати міцну базу та впевненіше почуватися на іспиті.`,
+                mid: `Для отримання високого бала важливо систематизувати матеріал і не витрачати час на інформацію, яка не входить до програми НМТ
+
+Під час підготовки необхідно чітко орієнтуватися на програму НМТ та не вивчати зайвий матеріал. Це дозволить ефективніше використати час і зосередитися саме на тому, що може трапитися на іспиті
+
+Окрему увагу варто приділити завданням на аналіз тексту. На НМТ надаватимуть уривки, яких немає в програмі, тому важливо навчитися аналізувати художній текст, визначати його тему, ідею, художні засоби та робити правильні висновки. Саме тому рекомендую регулярно практикувати такі завдання`,
+                high: `Варто зосередитися на ідтримці наявного результату та вдосконалювати навички виконання тестових завдань
+
+У літературі немає правил, які можна просто завчити. Високий результат тут досягається насамперед завдяки регулярному повторенню та великій кількості практики
+
+Особливу увагу рекомендую приділити цитатам, характеристикам письменників, уривкам із творів та їх аналізу. Саме завдання на аналіз художнього тексту є одними з найцінніших на НМТ й у сукупності можуть принести до 28 рейтингових балів. Тому варто регулярно тренуватися працювати з уривками, аналізувати їх і повторювати найважливіші цитати та відомості про авторів. Системна практика допоможе втримати високий рівень і максимально реалізувати свій потенціал на іспиті`
+            },
+            eng: {
+                low: `Наразі необхідно насамперед сформувати міцну базу знань. Саме база є основою для подальшого прогресу та високого результату на НМТ.
+
+Особливу увагу варто приділити розширенню словникового запасу, вивченню базової граматики та розвитку навичок розуміння текстів. Саме ці складові є фундаментом для виконання більшості завдань тесту.
+
+Не менш важливо готуватися саме до формату НМТ. Англійська на НМТ -це специфічний іспит, який перевіряє не лише знання мови, а й уважність, логіку та вміння аналізувати варіанти відповідей
+
+Саме тому рекомендую регулярно виконувати повні імітації НМТ, аналізувати кожну помилку та поступово нарощувати рівень складності завдань. Поєднання системного вивчення лексики й граматики з великою кількістю практики у форматі НМТ дозволить сформувати міцну базу та впевнено підвищувати результат.`,
+                mid: `Певні знання з англійської мови вже сформовані, і це позитивно впливає на підсумковий бал. Проте для високого результату на НМТ одного лише знання мови недостатньо.
+
+Окрему увагу варто приділити логіці тестових завдань і структурі самого іспиту. НМТ має власну специфіку: багато завдань містять схожі варіанти відповідей, перевіряють уважність до деталей і вміння правильно аналізувати умову.
+
+Саме через особливості формату навіть носії англійської мови або люди з дуже високим рівнем володіння мовою інколи отримують 150-160 балів, адже не знайомі зі структурою НМТ та типовими тестовими пастками.
+
+Тому рекомендую регулярно виконувати повні варіанти НМТ, аналізувати кожну помилку та відпрацьовувати саме формат іспиту. Це допоможе значно підвищити результат.`,
+                high: `Основне завдання зараз- зберегти цей рівень та мінімізувати кількість помилок.
+
+На НМТ з англійської ціна однієї помилки дуже висока. У середньому одна неправильна відповідь коштує 9 балів, що суттєво впливає на підсумковий результат рейтингового балу і може відіграти важливу роль під час вступу
+
+Основний акцент варто зробити на великій кількості практики саме у форматі НМТ. Регулярно виконуйте повні імітації іспиту, аналізуйте навіть незначні помилки та відпрацьовуйте завдання, у яких виникають труднощі.
+
+Мета на цьому етапі - не просто підтримувати високий рівень англійської, а навчитися стабільно виконувати тест без випадкових помилок, адже саме вони найчастіше заважають отримати максимально можливий результат.`
+            },
+            bio: {
+                low: `Наразі найбільше проблем виникає у багатьох фундаментальних темах програми, тому зараз важливо звернути увагу на них
+
+Програма з біології є дуже великою, адже вона охоплює одразу п'ять блоків: ботаніку, зоологію, анатомію людини, загальну біологію та екологію. Щоб успішно скласти іспит, необхідно системно розібратися з базовими поняттями та зрозуміти ключові процеси життєдіяльності організмів: від фотосинтезу й дихання до будови клітини та біосинтезу білка. Зазубрювання складних термінів без розуміння суті тут не спрацює, адже більшість питань НМТ побудовані саме на логіці та взаємозв'язках
+
+Окрему увагу варто приділити роботі з ілюстраціями, оскільки значна частина тесту складається із завдань на розпізнавання органів, систем та будови організмів. Покроковий розбір теорії, закріплення кожного блоку на практиці та регулярне розв'язання базових тестів дозволять швидко усунути прогалини, переставати плутатись у поняттях і суттєво підвищити підсумковий бал`,
+                mid: `Щоб вийти на дійсно високий бал, потрібно закрити дрібні прогалини та довести знання до ладу
+
+Основна складність біології на цьому етапі-це величезний обсяг деталей, де легко заплутатися. Бали втрачаються на складних розділах: генетиці, молекулярній біології та фізіології. Тут важливо не просто знати теорію, а вміти безпомилково розв’язувати задачі на ДНК чи спадковість і бачити логіку у заплутаних тестах на відповідність
+
+Зараз головне- приділити увагу саме тим темам, де найчастіше виникають сумніви, та багато практикуватися на формулюваннях НМТ. Систематичний розбір складних питань і регулярна практика допоможуть подолати цей бар'єр і впевнено рухатися до топового результату`,
+                high: `Коли йдеться про боротьбу за найвищий бал, вирішальними стають дрібниці: тонкощі генетичних карт, специфіка зчепленого успадкування, фази фотосинтезу чи нюанси регуляції функцій організму. Більшість помилок на цьому рівні виникає через неуважність у заплутаних умовах завдань або каверзні питання на відповідність, де поєднуються одразу кілька розділів.Зараз варто зосередитися на розв'язанні нестандартних комбінованих задач, детальному аналізі графіків і складних ілюстрацій, а також на точковій роботі з тими темами, де ще виникають хоч найменші сумніви. Робота з такими нюансами дозволить повністю закрити всі прогалини та впевнено забрати свій максимум`
+            },
+            geo: {
+                low: `Географія — це дуже логічний і наочний предмет. Не потрібно просто зубрити назви чи цифри, значно важливіше навчитися працювати з картами, розуміти масштаби, орієнтуватися в часових поясах та базових законах природи (погода, клімат, рельєф). Крім того, чимало тестових балів дають завдання з географії України, де варто чітко знати розташування областей, основних корисних копалин і природних зон.Зараз варто зосередитися на розборі простих схем, регулярній роботі з контурними картами та відпрацюванні базових тестів. Це дозволить швидко подолати невпевненість, перестати плутати терміни й впевнено підняти свій результат.`,
+                mid: `Наразі у вас вже є гарна базова орієнтація, але для виходу на високий результат важливо поглибити знання та навчитися легко вирішувати практичні завдання.
+
+На цьому етапі я раджу звернути особливу увагу на найбільш «цінні» блоки тесту — економічну географію, топографію та практичні розрахункові задачі. Завдання на обчислення (місцевого часу, вологості чи похилу річки), а також комплексні тести на зіставлення приносять найбільше вагомих балів на НМТ. Навіть якщо ці теми вже знайомі, додатковий акцент на них допоможе відточити швидкість виконання та захистить від прикрих помилок через неуважність.
+
+Варто просто систематично пропрацювати різнотипні завдання з цих ключів та впевнено забрати свої бали на іспиті!`,
+                high: `На цьому рівні вирішальну роль відіграє аналітичне мислення та ювелірна точність під час виконання найскладніших блоків НМТ
+
+Основна концентрація зараз потрібна на розв'язанні комплексних задач із топографічними картами, обчисленні демографічних показників, аналізі розрахункових ресурсів та розумінні глибоких причинно-наслідкових зв'язків у світовій економіці. Окремої уваги вимагають завдання на вибір трьох відповідей із семи та робота з діаграмами й кліматограмами, де один непомічений детальний нюанс може коштувати цінних балів
+
+Щоб гарантувати найвищий результат, важливо тренуватися на комбінованих тестах підвищеної складності, відточувати алгоритми обчислень та регулярно пропрацьовувати нестандартні графічні матеріали`
+            }
+        };
+
+        // State
+        let selectedSubject = 'math';
+        let score = null;
+        let activeLevel = 'low';
+        let isLevelManuallyOverridden = false;
+
+        // DOM
+        const subjectButtonsContainer = document.getElementById('subject-buttons');
+        const selectedSubjectBadge = document.getElementById('selected-subject-badge');
+        const inputTestData = document.getElementById('input-test-data');
+        const inputLink = document.getElementById('input-link');
+        const detectedScoreEl = document.getElementById('detected-score');
+        const manualScoreInput = document.getElementById('manual-score-input');
+        const levelButtons = document.querySelectorAll('.level-btn');
+        const finalOutputTextarea = document.getElementById('final-output');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnReset = document.getElementById('btn-reset');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+
+        // CTA Buttons
+        const ctaLow = document.getElementById('cta-low');
+        const ctaMid = document.getElementById('cta-mid');
+        const ctaHigh = document.getElementById('cta-high');
+
+        function init() {
+            renderSubjectButtons();
+            setupEventListeners();
+            updateAll();
+        }
+
+        function renderSubjectButtons() {
+            subjectButtonsContainer.innerHTML = '';
+            SUBJECTS.forEach(sub => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `p-1.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1 transition truncate ${
+                    sub.id === selectedSubject 
+                    ? 'border-blue-600 bg-blue-50 text-blue-800 shadow-sm' 
+                    : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                }`;
+                btn.innerHTML = `<span class="text-xs">${sub.emoji}</span><span class="truncate">${sub.name}</span>`;
+                btn.onclick = () => {
+                    selectedSubject = sub.id;
+                    const subObj = SUBJECTS.find(s => s.id === selectedSubject);
+                    selectedSubjectBadge.innerHTML = `${subObj.emoji} ${subObj.name}`;
+                    renderSubjectButtons();
+                    updateAll();
+                };
+                subjectButtonsContainer.appendChild(btn);
+            });
+        }
+
+        function setupEventListeners() {
+            inputTestData.addEventListener('input', () => {
+                parseScoreFromText();
+                updateAll();
+            });
+
+            inputLink.addEventListener('input', updateAll);
+
+            manualScoreInput.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) {
+                    score = val;
+                    detectedScoreEl.textContent = score;
+                    isLevelManuallyOverridden = false;
+                    autoCalculateLevel();
+                    updateAll();
+                } else {
+                    score = null;
+                    detectedScoreEl.textContent = '—';
+                }
+            });
+
+            levelButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activeLevel = btn.getAttribute('data-level');
+                    isLevelManuallyOverridden = true;
+                    updateLevelUI();
+                    updateAll();
+                });
+            });
+
+            btnCopy.addEventListener('click', () => {
+                copyTextToClipboard(finalOutputTextarea.value, 'Фінальний текст діагностики скопійовано!');
+            });
+
+            btnReset.addEventListener('click', resetForm);
+
+            // CTA Copy Click Handlers
+            ctaLow.addEventListener('click', () => copyTextToClipboard(CTA_TEXTS.low, 'Текст для низького рівня (Тариф Преміум) скопійовано!'));
+            ctaMid.addEventListener('click', () => copyTextToClipboard(CTA_TEXTS.mid, 'Текст для середнього рівня (Тариф Преміум) скопійовано!'));
+            ctaHigh.addEventListener('click', () => copyTextToClipboard(CTA_TEXTS.high, 'Текст для високого рівня (Тариф Преміум) скопійовано!'));
+        }
+
+        function parseScoreFromText() {
+            const text = inputTestData.value;
+            const match = text.match(/рейтинговий\s+бал:\s*(\d+)/i);
+            if (match && match[1]) {
+                score = parseInt(match[1], 10);
+                detectedScoreEl.textContent = score;
+                manualScoreInput.value = score;
+                if (!isLevelManuallyOverridden) {
+                    autoCalculateLevel();
+                }
+            }
+        }
+
+        function autoCalculateLevel() {
+            if (score === null) return;
+            if (score < 145) {
+                activeLevel = 'low';
+            } else if (score >= 145 && score < 170) {
+                activeLevel = 'mid';
+            } else {
+                activeLevel = 'high';
+            }
+            updateLevelUI();
+        }
+
+        function updateLevelUI() {
+            levelButtons.forEach(btn => {
+                const lvl = btn.getAttribute('data-level');
+                if (lvl === activeLevel) {
+                    if (lvl === 'low') {
+                        btn.className = 'level-btn border-2 p-2 rounded-lg text-center transition flex flex-col items-center justify-center border-amber-500 bg-amber-50 text-amber-900 shadow-sm';
+                    } else if (lvl === 'mid') {
+                        btn.className = 'level-btn border-2 p-2 rounded-lg text-center transition flex flex-col items-center justify-center border-blue-500 bg-blue-50 text-blue-900 shadow-sm';
+                    } else {
+                        btn.className = 'level-btn border-2 p-2 rounded-lg text-center transition flex flex-col items-center justify-center border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm';
+                    }
+                } else {
+                    btn.className = 'level-btn border border-slate-200 bg-white text-slate-600 hover:border-slate-300 p-2 rounded-lg text-center transition flex flex-col items-center justify-center';
+                }
+            });
+        }
+
+        function updateAll() {
+            updateLevelUI();
+            const currentSub = SUBJECTS.find(s => s.id === selectedSubject);
+            const rawTestData = inputTestData.value.trim();
+            const linkUrl = inputLink.value.trim();
+            const diagText = TEXTS[selectedSubject] ? TEXTS[selectedSubject][activeLevel] : '';
+
+            let outputParts = [];
+
+            outputParts.push(`${currentSub.emoji} ${currentSub.name}`);
+
+            if (rawTestData) {
+                outputParts.push(rawTestData);
+            }
+
+            if (linkUrl) {
+                outputParts.push(linkUrl);
+            }
+
+            if (diagText) {
+                outputParts.push(diagText);
+            }
+
+            finalOutputTextarea.value = outputParts.join('\n\n');
+        }
+
+        function copyTextToClipboard(text, msg = 'Текст успішно скопійовано!') {
+            if (!text) return;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => showToast(msg));
+            } else {
+                // Fallback for copy execution in nested iframe environments
+                const dummy = document.createElement("textarea");
+                document.body.appendChild(dummy);
+                dummy.value = text;
+                dummy.select();
+                document.execCommand("copy");
+                document.body.removeChild(dummy);
+                showToast(msg);
+            }
+        }
+
+        function showToast(msg) {
+            toastMessage.textContent = msg;
+            toast.classList.remove('translate-y-16', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-16', 'opacity-0');
+            }, 2200);
+        }
+
+        function resetForm() {
+            inputTestData.value = '';
+            inputLink.value = '';
+            score = null;
+            detectedScoreEl.textContent = '—';
+            manualScoreInput.value = '';
+            isLevelManuallyOverridden = false;
+            activeLevel = 'low';
+            updateAll();
+        }
+
+        window.onload = function() {
+            init();
+        };
+    </script>
+</body>
+</html>
